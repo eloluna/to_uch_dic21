@@ -38,3 +38,5 @@ En el repositorio, existen varios archivos de utilidad para el taller. A continu
 5. El archivo 'recursos' contiene links de sobre bases de datos y programas de utilidad para el análisis de datos.
 
 6.Finalmente, en el link (disponible desde el 01/12/2021) se puede ver el producto del script realizado.
+
+Para descargar todo el repositorio, en la página de este, haz click en el botón verde que dice 'code' y luego en 'download ZIP'. Esto descargará un archivo ZIP que contiene todos los archivos del repositorio. También pueden ser descargados de forma separada.
