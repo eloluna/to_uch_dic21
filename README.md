@@ -1,8 +1,8 @@
 # Taller de Rstudio sobre análisis de datos.
 
-*Dirigido a estudiantes de Terapia Ocupacional
+*Dirigido a estudiantes de Terapia Ocupacional*
 
-*Diciembre 2021.
+*Diciembre 2021.*
 
 Esta plataforma se llama Github. La principal función de esta Github es permitir el trabajo online y en comunidad para la creación de códigos. También es útil para compartir archivos desde una nube.
 
