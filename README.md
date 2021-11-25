@@ -15,10 +15,15 @@ La base de datos utilizada es ENDISC-II (https://www.senadis.gob.cl/pag/356/1625
 Los objetivos del taller son:
 
 a. Examinar datos y su estructura
+
 b. Limpiar los datos para su análisis
+
 c. Seleccionar métodos adecuados para realizar análisis estadísticos acordes a las variables de interés
+
 d. Describir la distribución de variables de interés
-e. Describir asociaciones de variables de interés.
+
+e. Describir asociaciones de variables de interés
+
 
 En el repositorio, existen varios archivos de utilidad para el taller. A continuación los detallo:
 
