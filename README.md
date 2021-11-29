@@ -31,12 +31,12 @@ En el repositorio, existen varios archivos de utilidad para el taller. A continu
 
 2. El archivo 'endisc_lite.csv' es base de datos de ENDISC-II restringida a variables claves que usaremos en el taller.
 
-3. El archivo 'taller_pdf' es un PDF con el producto generado para el taller y 'taller_pdf_respuestas' contiene respuestas del taller. Este último archivo estará disponible a partir del 01/12/2021.
+3. Los archivos 'cuanti_to_uch_taller' son el producto en PDF y Word  generado a través de RStudio. Las respuestas estarán incluidas después del taller.
 
-4. Los archivos terminados en '.png' son imágenes que están incluidas en el taller
+4. Los archivos terminados en '.png' o '.jpeg' son imágenes que están incluidas en el taller
 
 5. El archivo 'recursos' contiene links de sobre bases de datos y programas de utilidad para el análisis de datos.
 
-6.Finalmente, en el link (disponible desde el 01/12/2021) se puede ver el producto del script realizado.
+6.Finalmente, en el link https://rpubs.com/eloluna/840182 se puede ver el producto del script realizado en versión web.
 
 Para descargar todo el repositorio, en la página de este, haz click en el botón verde que dice 'code' y luego en 'download ZIP'. Esto descargará un archivo ZIP que contiene todos los archivos del repositorio. También pueden ser descargados de forma separada.
