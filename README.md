@@ -31,7 +31,7 @@ En el repositorio, existen varios archivos de utilidad para el taller. A continu
 
 2. El archivo 'endisc_lite.csv' es base de datos de ENDISC-II restringida a variables claves que usaremos en el taller.
 
-3. Los archivos 'cuanti_to_uch_taller' son el producto en PDF y Word  generado a través de RStudio. Las respuestas estarán incluidas después del taller.
+3. Los archivos 'cuanti_to_uch_taller' son el producto en PDF, Word y el script generado a través de RStudio. Las respuestas estarán incluidas después del taller.
 
 4. Los archivos terminados en '.png' o '.jpeg' son imágenes que están incluidas en el taller
 
