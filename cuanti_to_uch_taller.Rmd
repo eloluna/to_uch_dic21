@@ -1,0 +1,596 @@
+---
+title: "Taller T.O UCH. Diciembre 2021"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  html_notebook: default
+  word_document: default
+---
+
+El taller tiene como objetivo introducir un software de análisis estadístico, realizar un análisis de datos e interpretar los resultados de nuestro análisis. La base de datos utilizada corresponde a ENDISC-II. Nuestras variables dependientes serán los determinantes sociales de sexo, edad y educación, mientras que nuestra variable dependiente será discapacidad.
+
+*Web ENDISC-II:*
+
+https://www.senadis.gob.cl/pag/355/1197/ii_estudio_nacional_de_discapacidad
+
+*Web RStudio:*
+
+https://www.rstudio.com/products/rstudio/download/#download
+
+*Instalación y primeros pasos*
+
+https://conceptosclaros.com/instalar-r-primeros-pasos/
+
+*GitHub Taller*
+
+https://github.com/eloluna/to_uch_dic21
+
+*Web con el producto del taller*
+
+https://rpubs.com/eloluna/840182
+
+# Intro R
+
+- Intro RStudio interfaz y script
+- Paquetes, data y comandos
+- Comentarios
+- Markdown, chunks y outputs
+
+## Paquetes
+
+```{r include=FALSE}
+#Si corren esto en R por primera vez es esencial que quiten los '#' que están antes de install.packages. Esto va a permitir que R instale los paquetes que quiero.
+
+#install.packages("sjlabelled")
+#install.packages("haven")
+#install.packages("tidyverse")
+#install.packages("readr")
+#install.packages("flextable")
+
+library(sjlabelled)
+library(haven)
+library(tidyverse)
+library(readr)
+library(flextable)
+```
+
+```{r include=FALSE}
+tinytex::tlmgr_install("pdfcrop")
+Sys.setenv(R_GSCMD="C:/Program Files/gs/gs9.54.0/gswin64c.exe")
+set_flextable_defaults(fonts_ignore=TRUE)
+```
+
+## R Notebook
+
+Dos partes, un procesador de texto y 'chunks' para escribir comandos. Lo escrito aquí es el **procesador**. Los chunks son aquellas secciones de otro color que comienzan con ```{r}
+
+
+## Comentarios
+
+En los chunks, todo lo que lleve "#" va a ser interpretado por R como un comentario y no lo va a correr como comando.
+
+```{r}
+#este es un comentario
+#esto me va a generar problemas si no tiene #
+```
+
+\newpage
+
+# Taller
+
+Realizar análisis descriptivos de ENDISC-II. Recordemos que nuestras variables dependientes serán los determinantes sociales de sexo, edad, educación e ingresos, mientras que nuestra variable dependiente será discapacidad.
+
+## Cargar datos y examinar
+
+Una vez que tengo una idea de lo que pretendo realizar, es necesario cargar los datos y examinar su estructura.
+
+```{r include=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+#cambiar a '/' porque R no reconoce '\'
+setwd("C:/Users/elolu/OneDrive - University College London/PGTA/UCH/Taller")
+#?setwd
+
+endisc <- read_dta('ENDISCII.dta') #Notar obs y variables
+
+#?read_dta
+#read.csv() 
+#read_spss()
+#examinación code y visual
+head(endisc)
+```
+
+```{r eval=FALSE, include=FALSE}
+#También puedo obtener el archivo desde GitHub, la plataforma cuyo link está al inicio.
+
+download.file(url = "https://github.com/eloluna/to_uch_dic21/blob/main/endisc_lite.csv",
+          destfile = "endisc_git.csv",
+          mode = 'wb')
+
+endisc_git <- read.csv('C:/Users/elolu/Desktop/Respaldo Elo/Workshops 2021/Taller cuanti/endisclite.csv')
+```
+
+```{r include=FALSE, tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+#reducir la base de datos, sobre escribirla. Ver libro de códigos
+endisc <- endisc %>%
+  select(enc_id, hogar, rph_id, region, sexo, edad, educc, esc, ytot, cie_suma, cap_puntaje_adulto, des_puntaje_adulto, disc_grado_adulto)
+
+#$
+
+write.csv(endisc, 'C:/Users/elolu/OneDrive - University College London/PGTA/UCH/Taller/endisc_lite.csv')
+summary(endisc$edad)
+```
+
+Notemos los 'NAs' que aparecen. Esto es lo que se llama como missing data. Personas que no tienen información en ciertas variables.
+
+```{r echo=FALSE, warning=FALSE, list(width.cutoff=60), tidy=TRUE, tidy.opts=list(width.cutoff=60)}
+#menos variables con versión reducida, notar NAs
+summary(endisc)
+
+#variables relacionadas a discapacidad tienen alto porcentaje de NAs
+
+summary(is.na(endisc$disc_grado_adulto)) 
+#FALSE: Non-missing, TRUE: Missing
+```
+
+## Limpieza
+
+Si reviso la metodología de la encuesta, tendré una idea de por qué existe tan alto porcentaje de NAs (missing data) en algunas variables. Quien encuesta entrevista a una persona y esta da información acerca del grupo familiar, pero ciertas variables, como discapacidad, solo son respondidas por el encuestado.
+
+Ejemplo: El encuestado vive en una casa con su pareja, su suegra y sus dos hijos. Quien realiza la entrevista va a solicitar información acerca de elementos como sexo, edad, ocupación, entre otros para todos los miembros del hogar (5 personas), sin embargo, para variables más complejas, como las relacionadas con discapacidad, solo se le pedirá al encuestado. 
+
+Esto se vería así en una base:
+
+```{r}
+id_hogar <- c(1,1,1,1,1)
+
+id_persona <- c(1,2,3,4,5)
+
+var_sexo <- c(0,1,1,0,1) #0=Hombre, 1=Mujer
+
+var_edad <- c(55, 50, 72, 20, 17)
+
+var_occ <- c("Empleado", "Empleado", "Jubilado",
+             "Estudiante", "Estudiante")
+
+var_disc <- c(25, NA, NA, NA, NA) #Solo un dato
+
+tibble(id_hogar, id_persona, var_sexo, 
+       var_edad, var_occ, var_disc)
+```
+
+Cuál es el riesgo de no tomar en cuenta aquello?
+
+```{r}
+#Promedio de edad en toda la muestra
+mean(endisc$edad)
+
+#Promedio de edad de personas con mi variable de interés
+endisc2 <- subset(endisc, !is.na(endisc$cap_puntaje_adulto))
+
+mean(endisc2$edad)
+
+#Diferencias en nuestra estimación. Necesitamos tener un número determinado que sea constante para todos mis análisis
+#complete.cases(endisc)
+summary(complete.cases(endisc))
+
+endisc_cc <- subset(endisc, complete.cases(endisc))
+#endisc_cc
+```
+
+*Nota sobre estructura de datos*
+```{r echo=FALSE}
+knitr::include_graphics(path = "estructura_datos.png", dpi = 300)
+```
+
+## Etiquetado
+
+Ver data antes y después
+```{r Etiquetado var sexo, echo=FALSE}
+#Sexo
+table(endisc_cc$sexo)
+attr(endisc_cc$sexo, "labels")
+
+endisc_cc$sexo <- factor(endisc_cc$sexo, levels = c(1, 2), labels = c("Hombre", "Mujer"))
+
+addmargins(table(endisc_cc$sexo))
+```
+
+```{r Etiquetado var educ, echo=FALSE}
+table(endisc$educc)
+attr(endisc$educc, "labels")
+
+#99 "Sin dato". Si realizo algún análisis, el 99 va a ser un problema, por lo tanto, lo cambio por NA
+endisc_cc$educc <-  replace(endisc_cc$educc, endisc_cc$educc==99, NA)
+
+endisc_cc$educc <-  factor(endisc_cc$educc, levels = c(0:6), labels = c("Sin educacion formal", "Basica incompleta", "Basica completa", "Media incompleta", "Media completa", "Superior incompleta", "Superior completa"))
+
+addmargins(table(endisc_cc$educc))
+```
+
+```{r Etiquetado var discapacidad, echo=FALSE}
+table(endisc_cc$disc_grado_adulto)
+
+attr(endisc_cc$disc_grado_adulto, "labels")
+
+endisc_cc$disc_grado_adulto <- factor(endisc_cc$disc_grado_adulto,
+       levels = c(0:2),
+       labels = c("Sin Discapacidad",
+                     "Leve a Moderada",
+                     "Severa"))
+
+addmargins(table(endisc_cc$disc_grado_adulto))
+```
+
+\newpage
+
+## Descripción
+
+Vamos a realizar descripciones de nuestras variables de interés: discapacidad, sexo, edad y educación. Qué método utilizo para describir estas variables depende de su naturaleza.
+
+### Sexo
+
+La variable sexo es una variable binaria, por lo tanto, podemos describirla a través de frecuencias.
+
+```{r df sexo, warning=FALSE, include=FALSE}
+as.data.frame(table(endisc_cc$sexo))
+as.data.frame(round(prop.table(table(endisc_cc$sexo))*100,2))
+
+cbind(as.data.frame(table(endisc_cc$sexo)),
+as.data.frame(round(prop.table(table(endisc_cc$sexo))*100,2)))
+
+tbl_sex <- cbind(as.data.frame(table(endisc_cc$sexo)),
+as.data.frame(round(prop.table(table(endisc_cc$sexo))*100,2)))[,-3]
+
+tbl_sex
+```
+
+
+```{r formato tabla sexo, echo=FALSE}
+flextable(tbl_sex) %>% 
+  set_header_labels(Var1 = "Sexo", 
+                    Freq = "N", 
+                    Freq.1 = "%") %>% 
+  add_header_lines(values = "Tabla 1. Número y porcentaje de personas en la muestra por sexo") %>% 
+  width(j = NULL, width = 1) %>% 
+  theme_vanilla()
+```
+
+### Edad
+
+La variable edad es continua. Podemos examinar sus medidas centrales y de dispersión, y generar un histograma para examinar su distribución.
+
+```{r edad medidas}
+#summary(endisc_cc$edad)
+#Medidas de tendencia central
+
+#Promedio
+round(mean(endisc_cc$edad, na.rm = T),2)
+
+#Mediana
+median(endisc_cc$edad, na.rm = T)
+
+#Desviación stándard
+sd(endisc_cc$edad, na.rm = T)
+```
+
+```{r edad histograma, echo=FALSE}
+#Forma gráfica
+ggplot(endisc_cc) +
+  geom_bar(mapping = aes(x=edad), fill = "sky blue", color = "black") +
+  theme_bw() +
+  scale_x_continuous(n.breaks = 10) +
+  xlab("Edad") +
+  ylab("Número de personas") +
+  labs(title = "Figura 1. Distribución de edad en la muestra",
+       caption = "Fuente: ENDISC-II")
+```
+
+
+### Educación
+
+Hay dos variables de educación: grado de escolaridad y años de escolaridad. La primera es una variable categórica ordinal y la segunda es una variable continua cuya distribución no es normal. Podemos usar gráficos de barra y tablas de frecuencia para la primera, y la examinar las medidas de tendencia central e histograma para la segunda.
+
+```{r df educación, warning=FALSE, include=FALSE}
+tbl_educ <- as.data.frame(round(prop.table(table(endisc_cc$educc))*100,2))
+
+tbl_educ #con %
+
+tbl_educ2 <- as.data.frame(table(endisc_cc$educc))
+tbl_educ2 #con números
+```
+
+```{r formato tabla educación, echo=FALSE}
+flextable(tbl_educ) %>% 
+  set_header_labels(Var1 = "Nivel educacional", 
+                    Freq = "%") %>% 
+  add_header_lines(values = "Tabla 2. Porcentaje de personas en la muestra por nivel educacional") %>% 
+  width(j = NULL, width = 1.5) %>% 
+  theme_zebra()
+```
+
+```{r escolaridad1, echo=FALSE}
+#Forma gráfica
+#hist(endisc_cc$esc)
+
+ggplot(endisc_cc) +
+  geom_bar(mapping = aes(x=esc), fill = "#9621ad", color = "black") +
+  theme_bw() +
+  xlab("Años de escolaridad") +
+  ylab("Número de personas") +
+  labs(title = "Figura 2. Histograma de años de escolaridad",
+       caption = "Fuente: ENDISC-II")
+```
+
+
+```{r escolaridad2}
+#Medidas de tendencia central
+#Promedio
+mean(endisc_cc$esc)
+
+#Mediana
+median(endisc_cc$esc)
+```
+
+### Ingresos
+
+La variable ingresos es una variable continua. En general, esta variable no tiene una distribución normal. Una gran proporción de población tiene ingresos bajos, mientras que solo una pequeña parte tiene ingresos altos.
+
+```{r examinación ingresos, include=FALSE}
+summary(endisc_cc$ytot)
+mean(endisc_cc$ytot) #317,923
+median(endisc_cc$ytot)
+
+max(endisc_cc$ytot)
+
+#Conocer cuántas personas tienen ingresos superiores a 15m
+subset(endisc_cc, endisc_cc$ytot>15000000) #enc_id es clave
+
+#Outlier identificado, una observación que desvirtúa mi análisis
+subset(endisc_cc, endisc_cc$enc_id!=15223) #excluir entrevistado
+
+endisc_cc2 <- subset(endisc_cc, endisc_cc$enc_id!=15223)
+```
+
+
+```{r medidas ingresos}
+options(scipen = 50)
+#Ingreso promedio y mediano
+
+#Promedio
+mean(endisc_cc2$ytot) 
+
+#Medio
+median(endisc_cc2$ytot)
+```
+
+```{r graf ingresos, echo=FALSE, warning=FALSE}
+options(scipen = 50) #Evitar notación científica
+
+ggplot(endisc_cc2) +
+  geom_bar(mapping = aes(x=ytot), fill = "orange", color = "orange") +
+  theme_bw() +
+  scale_x_continuous(n.breaks = 10) +
+  xlim(c(0, 4000000)) +
+  ylim(c(0, 300)) +
+  xlab("Ingreso ($)") +
+  ylab("Número de personas") +
+  labs(title = "Figura 3. Distribución de ingresos en la muestra",
+       caption = "Fuente: ENDISC-II")
+```
+
+### Discapacidad
+
+Discapacidad es una variable del tipo ordinal. En este caso, voy a utilizar una tabla de frecuencias.
+
+```{r df discapacidad, warning=FALSE, include=FALSE}
+as.data.frame(table(endisc_cc$disc_grado_adulto))
+
+as.data.frame(round(prop.table(table(endisc_cc$disc_grado_adulto))*100,2))
+
+cbind(as.data.frame(table(endisc_cc$disc_grado_adulto)),
+      as.data.frame(round(prop.table(table(endisc_cc$disc_grado_adulto))*100,2)))
+
+tbl_disc <- cbind(as.data.frame(
+  table(endisc_cc$disc_grado_adulto)),
+      as.data.frame(round(prop.table(
+        table(endisc_cc$disc_grado_adulto))*100,2)))[, -3]
+
+tbl_disc
+```
+
+```{r formato tabla discapacidad, echo=FALSE}
+flextable(tbl_disc) %>% 
+  set_header_labels(Var1 = "Grado de discapacidad", 
+                    Freq = "N",
+                    Freq.1 = "%") %>% 
+  add_header_lines(values = "Tabla 3. Número y porcentaje de personas en la muestra por grado de discapacidad") %>% 
+  width(j = NULL, width = 1.5) %>% 
+  theme_tron_legacy()
+```
+
+**Breakout groups: Utilizando las tablas y figuras realizadas hasta el momento, describe la distribución de las variables de sexo, edad, educación, ingresos y discapacidad en la muestra de ENDISC-II**
+
+\newpage
+
+## Análisis
+
+Tenemos descritas nuestras variables de interés, ahora analizaremos la relación entre nuestra variable dependiente, discapacidad, con los determinantes sociales de sexo, edad, educación e ingresos.
+
+### Sexo y discapacidad
+
+Tipos de variables? Categórica ordinal y binaria. Puedo utilizar más de una opción
+
+```{r graf disc y sexo, echo=FALSE}
+#Opcion 1
+ggplot(endisc_cc) + 
+  geom_bar(mapping = aes(x = disc_grado_adulto, y = ..prop.., group = 1, ), stat = "count", fill = "#009E73", color = "black") + 
+  scale_y_continuous(labels = scales::percent_format(), n.breaks = 10) +
+  facet_wrap(endisc_cc$sexo) +
+  xlab("Grado de discapacidad") +
+  ylab("") +
+  labs(title = "Figura 4. Comparación de grado de 
+       discapacidad según sexo")
+```
+
+
+```{r graf disc y sexo2, echo=FALSE}
+#Opcion 2
+ggplot(endisc_cc) +
+  geom_bar(mapping = aes(x = disc_grado_adulto,
+                         fill = sexo)) +
+    labs(title = "Figura 5. Distribución de discapacidad según sexo") +
+  ylab("Número de personas") +
+  xlab("") +
+  scale_y_continuous(n.breaks = 5)
+```
+
+### Edad y discapacidad
+
+Tipo de variable? Continua y ordinal. Puedo utilizar boxplots
+
+```{r echo=FALSE}
+ggplot(endisc_cc) +
+  geom_boxplot(mapping = aes(x=disc_grado_adulto, y=edad), fill = "orange", color = "black") +
+  scale_y_continuous(n.breaks = 9) +
+  xlab("") +
+  ylab("Edad") +
+  labs(title = "Figura 6. Distribución de discapacidad por edad") +
+  theme_light()
+```
+
+### Educación y discapacidad
+
+Tipo de variable? Grado educativo es ordinal y discapacidad también.
+
+```{r disc y educ graf, echo=FALSE}
+#Graph distribución educacional según grado de discapacidad
+endisc_cc$Educación <- endisc_cc$educc
+
+endisc_cc %>% 
+  drop_na(Educación) %>% 
+ggplot() +
+  geom_bar(mapping = aes(x=disc_grado_adulto, fill = Educación), position = "fill") +
+  labs(title = "Figura 7. Distribución de educación según discapacidad") +
+  xlab("") +
+  ylab("Proporción") +
+  scale_y_continuous(n.breaks = 10)
+```
+
+### Ingresos y discapacidad
+
+Ingresos es una variable continua y discapacidad es ordinal. Utilizaré promedio y mediana, sus medidas de tendencia central, para enfatizar las diferencias en una tabla.
+
+```{r echo=FALSE, warning=FALSE}
+unique(endisc_cc2 %>% 
+         group_by(disc_grado_adulto) %>% 
+         mutate(media_ingr = median(ytot),
+                prom_ingr = round(mean(ytot),0)) %>% 
+         select(disc_grado_adulto, media_ingr, prom_ingr) %>% 
+         arrange(disc_grado_adulto)) %>% 
+         flextable() %>%
+  set_header_labels(disc_grado_adulto = 
+                      "Grado de discapacidad",
+                    media_ingr = "Mediana $",
+                    prom_ingr = "Promedio $") %>% 
+  add_header_lines(values = "Tabla 5. Mediana y promedio de ingresos por grado de discapacidad") %>% 
+  width(j = NULL, width = 1) %>% 
+  align(align = "left", part = "all") %>% 
+  theme_zebra()
+```
+
+**Break out groups 2: Utilizando los gráficos y tablas de la sección análisis, describe las asociaciones entre sexo y discapacidad, edad y discapacidad, educación y discapacidad e ingresos y discapacidad.**
+
+\newpage
+
+### Todo junto
+
+```{r eval=FALSE, warning=FALSE, include=FALSE}
+#Tabla de promedio de estudios según grado de discapacidad
+endisc_cc %>% 
+  group_by(disc_grado_adulto) %>% 
+  summarise(Promedio_Educacional = round(mean(esc, na.rm = T),2)) %>% 
+  flextable() %>% 
+  theme_vanilla() %>% 
+  set_header_labels(Promedio_Educacional = "Promedio de escolaridad",
+                    disc_grado_adulto = "Grado de discapacidad") %>% 
+  width(width = 2)
+
+
+#Tabla de promedio de estudios según grado de discapacidad y sexo
+endisc_cc %>% 
+  group_by(disc_grado_adulto, sexo) %>% 
+  summarise(Promedio_Educ = round(mean(esc, na.rm = T),2))  %>% 
+  flextable() %>% 
+  theme_tron() %>% 
+  set_header_labels(Promedio_Educ = "Promedio de escolaridad",
+                    disc_grado_adulto = "Grado de discapacidad",
+                    sexo = "Sexo") %>% 
+  width(j=1, width = 2) %>% 
+  width(j=3, width = 2) %>% 
+  align(align = "left", part = "header")
+```
+
+```{r tabla final, warning=FALSE}
+unique(endisc_cc %>% 
+  group_by(disc_grado_adulto) %>%
+  mutate(prom_sexo = round(
+    200 - mean(as.numeric(sexo))*100,2)) %>%
+  mutate(prom_edad = round(mean(edad),2)) %>%
+  mutate(prom_educ = round(mean(esc),2)) %>%
+    mutate(media_ingr = median(ytot)) %>% 
+  select(disc_grado_adulto, prom_sexo,
+         prom_edad, prom_educ, media_ingr)) %>% 
+  arrange(disc_grado_adulto) %>% #Crear datos con promedios
+  flextable() %>% #Generar tabla en base a los datos
+  set_header_labels(disc_grado_adulto = 
+                      "Grado de discapacidad",
+                    prom_sexo = "Porcentaje hombres",
+                    prom_edad = "Edad promedio",
+                    prom_educ = "Escolaridad promedio",
+                    media_ingr = "Ingreso mediano") %>%
+  add_header_lines(values = "Tabla 6.Tabla resumen") %>% 
+  width(j = NULL, width = 1) %>% 
+  align(align = "left", part = "all") %>% 
+  theme_vanilla()
+```
+
+\newpage
+
+## Opcional
+
+Hasta ahora, hemos analizado asociaciones considerando dos variables. Por ejemplo, edad y discapacidad o educación y discapacida. 
+
+```{r echo=FALSE}
+knitr::include_graphics(path = "A_B.png", dpi = 300)
+```
+
+En realidad, van a existir múltiples relaciones actuando de manera simultánea y muchas veces habrán interacciones entre las distintas variables independientes.
+
+```{r echo=FALSE, dpi=300}
+knitr::include_graphics(path = "mental_health_model_lund.jpg", dpi = 300)
+```
+
+
+Fuente: Lund et al. (2018)
+
+
+Visualicemos la relación entre tres variables a la vez: ingresos, edad y discapacidad. Cómo es la relación entre estas tres variables?
+
+
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+temp1 <- subset(endisc_cc, ytot<2000000  & des_puntaje_adulto>25)
+
+ggplot(temp1) +
+  geom_point(mapping = aes(x=des_puntaje_adulto, y=ytot, color = edad), position = "jitter") +
+  geom_smooth(mapping = aes(x=des_puntaje_adulto, y=ytot), method = "lm", se = FALSE) +
+  scale_color_gradientn(colours = heat.colors(20)) +
+  labs(title = "Figura 8. Scatterplot de la asociación entre
+       puntaje de desempeño e ingreso mensual") +
+  xlab("Puntaje de desempeño") +
+  ylab("Ingreso mensual ($)")
+```
+
+
+
+Qué podemos decir de la relación que existe entre desempeño, ingresos y edad mirando el gráfico?
